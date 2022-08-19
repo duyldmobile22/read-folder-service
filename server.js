@@ -8,6 +8,7 @@ const srt2vtt = require("./srt2vtt");
 const { SubtitleParser, SubtitleStream } = require("matroska-subtitles");
 const { stringifySync } = require("subtitle");
 var strstream = require("string-to-stream");
+const devnull = require('dev-null')
 
 const corsOptions = {
   origin: [
@@ -142,7 +143,6 @@ app.get("/subtitles/*", function (req, res) {
     return;
   }
   parser.once("tracks", (tracks) => {
-    console.log(tracks)
     const track = tracks.find((t) => t.language == language);
     if (!track) {
       strstream('').pipe(res);
