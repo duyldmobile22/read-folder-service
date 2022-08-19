@@ -106,7 +106,7 @@ app.get("/trasks/*", function (req, res) {
       fulltracks.push({ language: "default", type: "utf8", default: true });
     parser.once("tracks", (tracks) => {
       isTracks = true;
-      if(_.isEmpty(fulltracks) && !_.isEmpty(tracks)) tracks[0].default = true
+      if (_.isEmpty(fulltracks) && !_.isEmpty(tracks)) tracks[0].default = true;
       fulltracks.push(...tracks);
       res.send(fulltracks.filter((t) => !!t.language));
     });
@@ -135,13 +135,21 @@ app.get("/subtitles/*", function (req, res) {
   let str = "";
   if (language == "default") {
     const path = getSubtitlesOutside(fullPath);
-    fs.createReadStream(path).pipe(srt2vtt()).pipe(res);
+    if (path) fs.createReadStream(path).pipe(srt2vtt()).pipe(res);
+    else {
+      strstream('').pipe(res);
+    }
     return;
   }
   parser.once("tracks", (tracks) => {
-    const number = tracks.find((t) => t.language == language).number;
+    console.log(tracks)
+    const track = tracks.find((t) => t.language == language);
+    if (!track) {
+      strstream('').pipe(res);
+      return
+    }
     parser.on("subtitle", (subtitle, trackNumber) => {
-      if (trackNumber == number) {
+      if (trackNumber == track.number) {
         list.push({
           type: "cue",
           data: {
