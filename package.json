@@ -13,10 +13,12 @@
     "express": "^4.18.1",
     "fs": "0.0.1-security",
     "lodash": "^4.17.21",
+    "matroska-subtitles": "^3.3.2",
     "path": "^0.12.7",
     "pumpify": "^2.0.1",
     "split2": "^4.1.0",
-    "srt-to-vtt": "^1.1.3",
+    "string-to-stream": "^3.0.1",
+    "subtitle": "^4.2.1",
     "through2": "^4.0.2",
     "to-utf-8": "^1.3.0"
   }
