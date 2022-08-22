@@ -21,6 +21,7 @@ module.exports = function () {
     if(line.includes('-->')){
       line = line + ' line:-3'
     }
+    line = line.replace('\\N', '\n')
     if (line.trim()) {
       buf.push(line.trim())
       return cb()

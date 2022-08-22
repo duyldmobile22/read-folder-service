@@ -3,10 +3,13 @@
 # dependencies
 /node_modules
 /.pnp
-.pnp.js
+.pnp.js# 
 
-# testing
+#testing
 /coverage
+
+# subtitles
+/subtitles
 
 # production
 /build

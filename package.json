@@ -13,6 +13,7 @@
     "dev-null": "^0.1.1",
     "express": "^4.18.1",
     "fs": "0.0.1-security",
+    "fs-extra": "^10.1.0",
     "lodash": "^4.17.21",
     "matroska-subtitles": "^3.3.2",
     "path": "^0.12.7",
