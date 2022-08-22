@@ -68,7 +68,7 @@ app.get("/public/*", function (req, res) {
         list.push({ type: "folder", name });
       } else if (fileTypes.find((type) => name.includes(type))) {
         list.push({ type: "file", name });
-        paths.push([req.params[0], name].join("/"));
+        paths.push([...fullPath, name].join("/"));
       }
     });
     convertSubtitle(paths);
@@ -96,22 +96,21 @@ app.get("/trasks/*", function (req, res) {
     stream.once("tracks", (tracks) => {
       isTracks = true;
       for (let index = 0; index < tracks.length; index++) {
-        const { language, lable } = tracks[index];
-        if (!fulltracks.find((t) => t.language == language))
+        const { language, name } = tracks[index];
+        if (!fulltracks.find((t) => t.language == language + "_sv"))
           fulltracks.push({
             language: language ? language + "_sv" : language,
-            lable: lable || language,
+            lable: name || language,
             type: "utf8",
             default: index == 0 && _.isEmpty(fulltracks),
             number: tracks[index].number
           });
       }
       try {
-        let fileSubtile = _.clone(pathFile)
+        let fileSubtile = _.clone(pathFile);
         fileTypes.forEach((fileType) => {
           fileSubtile = fileSubtile.replace(fileType, ".json");
         });
-        console.log(fileSubtile)
         fs.readFileSync(`subtitles/${fileSubtile}`, "utf8");
         res.send(fulltracks.filter((t) => !!t.language));
       } catch (error) {
@@ -141,8 +140,6 @@ app.get("/subtitles/*", function (req, res) {
     pathFile = pathFile.replace(fileType, ".json");
   });
   const language = req.query.language;
-  let root = _.first(fullPath) || "";
-
   let str = "";
   if (language === "default_sv") {
     const path = getSubtitlesOutside(fullPath);
@@ -192,6 +189,19 @@ const getSubtitlesOutside = (fullPath) => {
 };
 
 const convertSubtitle = async (paths, tracks, continue_) => {
+  if (!_.isEmpty(paths)) {
+    const pathFolder = _.dropRight(paths[0].split("/")).join("/");
+    try {
+      const folderNames = fs.readdirSync(`subtitles/${pathFolder}`);
+      folderNames.forEach((f) => {
+        const checkNoFile = !paths.find((p) => p.includes([pathFolder, f.replace(".json", "")].join("/")));
+        try {
+          if (checkNoFile) fs.unlinkSync(`subtitles/${[pathFolder, f].join("/")}`);
+        } catch (error) {}
+      });
+    } catch (error) {}
+  }
+
   paths &&
     paths.forEach((path) => {
       pathToConverts.push({ path, tracks });
@@ -235,7 +245,7 @@ const convert = (path, fulltracks) => {
           isTracks = true;
           for (let index = 0; index < tracks.length; index++) {
             const { language, lable } = tracks[index];
-            if (!newTracks.find((t) => t.language == language))
+            if (!newTracks.find((t) => t.language == language + "_sv"))
               newTracks.push({
                 language: language ? language + "_sv" : language,
                 lable: lable || language,
