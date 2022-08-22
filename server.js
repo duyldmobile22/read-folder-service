@@ -16,11 +16,11 @@ const corsOptions = {
 };
 const folderPuclic = [
   {
-    name: "E",
+    name: "Disk_E",
     path: "E:"
   },
   {
-    name: "F",
+    name: "Disk_F",
     path: "F:"
   },
   {
@@ -52,7 +52,7 @@ app.get("/public/*", function (req, res) {
 
   const pathRoot = folderPuclic.find((f) => f.name === root).path;
   const path = [pathRoot, ..._.drop(fullPath)].join("/");
-
+  
   try {
     const folderNames = fs.readdirSync(path + "/");
     const paths = [];
@@ -66,10 +66,10 @@ app.get("/public/*", function (req, res) {
         list.push({ type: "folder", name });
       } else if (fileTypes.find((type) => name.includes(type))) {
         list.push({ type: "file", name });
-        paths.push(req.params[0] + name);
+        paths.push([req.params[0], name].join('/'));
       }
     });
-    convertSubtitle(paths).then();
+    convertSubtitle(paths);
     res.send(list);
     return;
   } catch (error) {}
@@ -92,7 +92,6 @@ app.get("/trasks/*", function (req, res) {
     // console.log(stream);
 
     stream.once("tracks", (tracks) => {
-      console.log(tracks);
       isTracks = true;
       for (let index = 0; index < tracks.length; index++) {
         const { language, lable } = tracks[index];
@@ -185,12 +184,12 @@ const getSubtitlesOutside = (fullPath) => {
 let pathToConverts = [];
 let converting = false;
 const convertSubtitle = async (paths, tracks, continue_) => {
-  
-  paths && paths.forEach((path) => {
-    pathToConverts.push({ path, tracks });
-  });
-
-  if (!converting || continue_) {
+  paths &&
+    paths.forEach((path) => {
+      pathToConverts.push({ path, tracks });
+    });
+  if ((!converting || continue_) && !_.isEmpty(pathToConverts)) {
+    converting = true;
     await convert(pathToConverts[0].path, pathToConverts[0].tracks);
     pathToConverts = _.drop(pathToConverts);
     if (_.isEmpty(pathToConverts)) {
@@ -264,7 +263,7 @@ const parter = (newTracks, path, pathFile, pathRoot, fullPath, resolve, reject) 
     }
     index++;
     const { language } = newTracks.find((track) => track.number == trackNumber) || {};
-    if (language) {
+    if (language && subtitle.duration < 10000) {
       const rowRob = {
         type: "cue",
         data: { start: subtitle.time, end: subtitle.time + subtitle.duration, text: subtitle.text }
