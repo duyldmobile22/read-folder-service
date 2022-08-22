@@ -32,6 +32,8 @@ const folderPuclic = [
 
 let fileTypes = [".mp4", ".mkv", ".webm"];
 let subCode = ["vie", "vn", "vietnam", "viet_nam", "und"];
+let pathToConverts = [];
+let converting = false;
 
 app.use(cors(corsOptions));
 folderPuclic.forEach((f) => {
@@ -52,7 +54,7 @@ app.get("/public/*", function (req, res) {
 
   const pathRoot = folderPuclic.find((f) => f.name === root).path;
   const path = [pathRoot, ..._.drop(fullPath)].join("/");
-  
+
   try {
     const folderNames = fs.readdirSync(path + "/");
     const paths = [];
@@ -66,7 +68,7 @@ app.get("/public/*", function (req, res) {
         list.push({ type: "folder", name });
       } else if (fileTypes.find((type) => name.includes(type))) {
         list.push({ type: "file", name });
-        paths.push([req.params[0], name].join('/'));
+        paths.push([req.params[0], name].join("/"));
       }
     });
     convertSubtitle(paths);
@@ -104,10 +106,18 @@ app.get("/trasks/*", function (req, res) {
             number: tracks[index].number
           });
       }
-      convertSubtitle([pathFile], fulltracks);
-      setTimeout(() => {
+      try {
+        let fileSubtile = _.clone(pathFile)
+        fileTypes.forEach((fileType) => {
+          fileSubtile = fileSubtile.replace(fileType, ".json");
+        });
+        console.log(fileSubtile)
+        fs.readFileSync(`subtitles/${fileSubtile}`, "utf8");
         res.send(fulltracks.filter((t) => !!t.language));
-      }, 2000);
+      } catch (error) {
+        convertSubtitle([pathFile], fulltracks);
+        res.send({ waiting: true });
+      }
     });
     stream.once("drain", (drain) => {
       if (!isTracks) {
@@ -181,8 +191,6 @@ const getSubtitlesOutside = (fullPath) => {
   return path;
 };
 
-let pathToConverts = [];
-let converting = false;
 const convertSubtitle = async (paths, tracks, continue_) => {
   paths &&
     paths.forEach((path) => {
@@ -240,11 +248,13 @@ const convert = (path, fulltracks) => {
         });
         stream.once("drain", (drain) => {
           if (!isTracks) {
+            fsExtra.outputFile(`subtitles/${pathFile}`, JSON.stringify({}));
             resolve("");
           }
         });
         fs.createReadStream([pathRoot, ..._.drop(fullPath)].join("/")).pipe(stream);
       } catch (error) {
+        fsExtra.outputFile(`subtitles/${pathFile}`, JSON.stringify({}));
         resolve("");
         return;
       }
