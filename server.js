@@ -15,18 +15,18 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 const folderPuclic = [
-  {
-    name: "Disk_E",
-    path: "E:"
-  },
-  {
-    name: "Disk_F",
-    path: "F:"
-  },
+  // {
+  //   name: "Disk_E",
+  //   path: "E:"
+  // },
+  // {
+  //   name: "Disk_F",
+  //   path: "F:"
+  // },
   {
     name: "Download",
-    path: "C:/Users/Duy/Downloads"
-    // path: "/Users/macbookpro/Downloads",
+    // path: "C:/Users/Duy/Downloads"
+    path: "/Users/macbookpro/Downloads",
   }
 ];
 
@@ -62,7 +62,7 @@ app.get("/public/*", function (req, res) {
       let itemStat;
       try {
         itemStat = fs.statSync([path, name].join("/"));
-      } catch (error) {}
+      } catch (error) { }
 
       if (itemStat && itemStat.isDirectory()) {
         list.push({ type: "folder", name });
@@ -74,7 +74,7 @@ app.get("/public/*", function (req, res) {
     convertSubtitle(paths);
     res.send(list);
     return;
-  } catch (error) {}
+  } catch (error) { }
   res.send("listName");
 });
 
@@ -155,7 +155,7 @@ app.get("/subtitles/*", function (req, res) {
       strstream(str).pipe(srt2vtt()).pipe(res);
       return;
     }
-  } catch (error) {}
+  } catch (error) { }
   strstream("").pipe(srt2vtt()).pipe(res);
 });
 
@@ -197,18 +197,20 @@ const convertSubtitle = async (paths, tracks, continue_) => {
         const checkNoFile = !paths.find((p) => p.includes([pathFolder, f.replace(".json", "")].join("/")));
         try {
           if (checkNoFile) fs.unlinkSync(`subtitles/${[pathFolder, f].join("/")}`);
-        } catch (error) {}
+        } catch (error) { }
       });
-    } catch (error) {}
+    } catch (error) { }
   }
 
-  paths &&
+  if (paths) {
     paths.forEach((path) => {
       pathToConverts.push({ path, tracks });
-    });
+    })
+  };
   if ((!converting || continue_) && !_.isEmpty(pathToConverts)) {
     converting = true;
-    await convert(pathToConverts[0].path, pathToConverts[0].tracks);
+    const { path, tracks } = pathToConverts[0];
+    await convert(path, tracks);
     pathToConverts = _.drop(pathToConverts);
     if (_.isEmpty(pathToConverts)) {
       converting = false;
@@ -228,7 +230,7 @@ const convert = (path, fulltracks) => {
       fs.readFileSync(`subtitles/${pathFile}`, "utf8");
       resolve("");
       return;
-    } catch (error) {}
+    } catch (error) { }
 
     console.log(path, fulltracks);
     const fullPath = path.split("/").filter((p) => !!p);
