@@ -62,7 +62,7 @@ app.get("/public/*", function (req, res) {
       let itemStat;
       try {
         itemStat = fs.statSync([path, name].join("/"));
-      } catch (error) { }
+      } catch (error) {}
 
       if (itemStat && itemStat.isDirectory()) {
         list.push({ type: "folder", name });
@@ -75,7 +75,7 @@ app.get("/public/*", function (req, res) {
     convertSubtitle(paths);
     res.send(list);
     return;
-  } catch (error) { }
+  } catch (error) {}
   res.send("listName");
 });
 
@@ -148,7 +148,7 @@ app.get("/subtitles/*", function (req, res) {
       strstream(str).pipe(srt2vtt()).pipe(res);
       return;
     }
-  } catch (error) { }
+  } catch (error) {}
   strstream("").pipe(srt2vtt()).pipe(res);
 });
 
@@ -182,13 +182,9 @@ const cleanSubs = async (fileNames, fullPath) => {
       const checkNoFile = !fileNames.find((file) => file.replace(new RegExp(fileTypes.join("|"), "g"), "") === sub.replace(".json", ""));
       try {
         if (checkNoFile) fsExtra.removeSync(`subtitles/${[...fullPath, sub].join("/")}`);
-      } catch (error) {
-        console.log(error);
-      }
+      } catch (error) {}
     });
-  } catch (error) {
-    console.log(error);
-  }
+  } catch (error) {}
 };
 
 const convertSubtitle = async (paths, tracks, continue_) => {
@@ -217,7 +213,7 @@ const convert = (path, fulltracks) => {
       fs.readFileSync(`subtitles/${pathFile}`, "utf8");
       resolve("");
       return;
-    } catch (error) { }
+    } catch (error) {}
 
     console.log(path, fulltracks);
     const fullPath = path.split("/").filter((p) => !!p);
