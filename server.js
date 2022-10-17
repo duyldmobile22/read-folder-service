@@ -1,5 +1,5 @@
-var express = require("express");
-var app = express();
+const express = require("express");
+const app = express();
 const fs = require("fs");
 const fsExtra = require("fs-extra");
 const cors = require("cors");
@@ -8,10 +8,10 @@ const _ = require("lodash");
 const srt2vtt = require("./srt2vtt");
 const { SubtitleParser, SubtitleStream } = require("matroska-subtitles");
 const { stringifySync } = require("subtitle");
-var strstream = require("string-to-stream");
+const strstream = require("string-to-stream");
 
 const corsOptions = {
-  origin: ["http://localhost:3000", "http://192.168.47.3:3000", "http://172.16.0.104:3000"],
+  origin: ["http://localhost:3000", "http://192.168.47.3:3000", "http://172.16.0.104:3000", "http://172.16.0.132:3000"],
   optionsSuccessStatus: 200
 };
 const folderPuclic = [
@@ -26,7 +26,7 @@ const folderPuclic = [
   {
     name: "Download",
     // path: "C:/Users/Duy/Downloads"
-    path: "/Users/macbookpro/Downloads",
+    path: "/Users/macbookpro/Downloads"
   }
 ];
 
@@ -71,6 +71,7 @@ app.get("/public/*", function (req, res) {
         paths.push([...fullPath, name].join("/"));
       }
     });
+    cleanSubs(folderNames, fullPath);
     convertSubtitle(paths);
     res.send(list);
     return;
@@ -91,8 +92,6 @@ app.get("/trasks/*", function (req, res) {
 
     const pathSub = getSubtitlesOutside(fullPath);
     if (pathSub) fulltracks.push({ language: "default_sv", lable: "default", type: "utf8", default: true });
-    // console.log(stream);
-
     stream.once("tracks", (tracks) => {
       isTracks = true;
       for (let index = 0; index < tracks.length; index++) {
@@ -107,10 +106,7 @@ app.get("/trasks/*", function (req, res) {
           });
       }
       try {
-        let fileSubtile = _.clone(pathFile);
-        fileTypes.forEach((fileType) => {
-          fileSubtile = fileSubtile.replace(fileType, ".json");
-        });
+        let fileSubtile = _.clone(pathFile).replace(new RegExp(fileTypes.join("|"), "g"), ".json");
         fs.readFileSync(`subtitles/${fileSubtile}`, "utf8");
         res.send(fulltracks.filter((t) => !!t.language));
       } catch (error) {
@@ -135,10 +131,7 @@ app.get("/trasks/*", function (req, res) {
 
 app.get("/subtitles/*", function (req, res) {
   const fullPath = req.params[0].split("/").filter((p) => !!p);
-  let pathFile = req.params[0];
-  fileTypes.forEach((fileType) => {
-    pathFile = pathFile.replace(fileType, ".json");
-  });
+  let pathFile = req.params[0].replace(new RegExp(fileTypes.join("|"), "g"), ".json");
   const language = req.query.language;
   let str = "";
   if (language === "default_sv") {
@@ -159,25 +152,19 @@ app.get("/subtitles/*", function (req, res) {
   strstream("").pipe(srt2vtt()).pipe(res);
 });
 
-var server = app.listen(8081, function () {
-  var host = server.address().address;
-  var port = server.address().port;
-
+const server = app.listen(8081, function () {
+  const host = server.address().address;
+  const port = server.address().port;
   console.log("Ung dung Node.js dang lang nghe tai dia chi: http://%s:%s", host, port);
 });
 
 const getSubtitlesOutside = (fullPath) => {
-  let root = _.first(fullPath) || "";
+  const root = _.first(fullPath) || "";
   const pathRoot = folderPuclic.find((f) => f.name === root).path;
-
   const folder = [pathRoot, ..._.drop(_.dropRight(fullPath))].join("/");
-  let file = _.last(fullPath);
-  let namesrc = file;
-  let namevtt = file;
-  fileTypes.forEach((fileType) => {
-    namesrc = namesrc.replace(fileType, ".srt");
-    namevtt = namevtt.replace(fileType, ".vtt");
-  });
+  const file = _.last(fullPath);
+  const namesrc = file.replace(new RegExp(fileTypes.join("|"), "g"), ".srt");
+  const namevtt = file.replace(new RegExp(fileTypes.join("|"), "g"), ".vtt");
   const files = fs.readdirSync(folder);
   let path;
   files.forEach((f) => {
@@ -188,25 +175,28 @@ const getSubtitlesOutside = (fullPath) => {
   return path;
 };
 
-const convertSubtitle = async (paths, tracks, continue_) => {
-  if (!_.isEmpty(paths)) {
-    const pathFolder = _.dropRight(paths[0].split("/")).join("/");
-    try {
-      const folderNames = fs.readdirSync(`subtitles/${pathFolder}`);
-      folderNames.forEach((f) => {
-        const checkNoFile = !paths.find((p) => p.includes([pathFolder, f.replace(".json", "")].join("/")));
-        try {
-          if (checkNoFile) fs.unlinkSync(`subtitles/${[pathFolder, f].join("/")}`);
-        } catch (error) { }
-      });
-    } catch (error) { }
+const cleanSubs = async (fileNames, fullPath) => {
+  try {
+    const subs = fs.readdirSync(`subtitles/${fullPath.join("/")}`);
+    subs.forEach((sub) => {
+      const checkNoFile = !fileNames.find((file) => file.replace(new RegExp(fileTypes.join("|"), "g"), "") === sub.replace(".json", ""));
+      try {
+        if (checkNoFile) fsExtra.removeSync(`subtitles/${[...fullPath, sub].join("/")}`);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+  } catch (error) {
+    console.log(error);
   }
+};
 
+const convertSubtitle = async (paths, tracks, continue_) => {
   if (paths) {
     paths.forEach((path) => {
       pathToConverts.push({ path, tracks });
-    })
-  };
+    });
+  }
   if ((!converting || continue_) && !_.isEmpty(pathToConverts)) {
     converting = true;
     const { path, tracks } = pathToConverts[0];
@@ -222,10 +212,7 @@ const convertSubtitle = async (paths, tracks, continue_) => {
 
 const convert = (path, fulltracks) => {
   return new Promise((resolve, reject) => {
-    let pathFile = _.clone(path);
-    fileTypes.forEach((fileType) => {
-      pathFile = pathFile.replace(fileType, ".json");
-    });
+    let pathFile = _.clone(path).replace(new RegExp(fileTypes.join("|"), "g"), ".json");
     try {
       fs.readFileSync(`subtitles/${pathFile}`, "utf8");
       resolve("");
