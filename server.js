@@ -9,21 +9,21 @@ const srt2vtt = require("./srt2vtt");
 const { SubtitleParser, SubtitleStream } = require("matroska-subtitles");
 const { stringifySync } = require("subtitle");
 const strstream = require("string-to-stream");
-
+var ass2srt = require('ass-to-srt');
 
 const folderPuclic = [
-  // {
-  //   name: "Disk_E",
-  //   path: "E:"
-  // },
-  // {
-  //   name: "Disk_F",
-  //   path: "F:"
-  // },
+  {
+    name: "Disk_E",
+    path: "E:"
+  },
+  {
+    name: "Disk_F",
+    path: "F:"
+  },
   {
     name: "Download",
-    // path: "C:/Users/Duy/Downloads"
-    path: "/Users/macbookpro/Downloads"
+    path: "C:/Users/Duy/Downloads"
+    // path: "/Users/macbookpro/Downloads"
   }
 ];
 
@@ -139,8 +139,14 @@ app.get("/subtitles/*", function (req, res) {
   let str = "";
   if (language === "default_sv") {
     const path = getSubtitlesOutside(fullPath);
-    if (path) fs.createReadStream(path).pipe(srt2vtt()).pipe(res);
-    else strstream("").pipe(res);
+    if (path) {
+      if (path.includes(".ass")) {
+        const str = fs.readFileSync(path)
+        strstream(ass2srt(str)).pipe(srt2vtt()).pipe(res)
+      } else {
+        fs.createReadStream(path).pipe(srt2vtt()).pipe(res);
+      }
+    } else strstream("").pipe(res);
     return;
   }
   try {
@@ -166,12 +172,13 @@ const getSubtitlesOutside = (fullPath) => {
   const pathRoot = folderPuclic.find((f) => f.name === root).path;
   const folder = [pathRoot, ..._.drop(_.dropRight(fullPath))].join("/");
   const file = _.last(fullPath);
+  const nameass = file.replace(new RegExp(fileTypes.join("|"), "g"), ".ass");
   const namesrc = file.replace(new RegExp(fileTypes.join("|"), "g"), ".srt");
   const namevtt = file.replace(new RegExp(fileTypes.join("|"), "g"), ".vtt");
   const files = fs.readdirSync(folder);
   let path;
   files.forEach((f) => {
-    if ([namesrc, namevtt].includes(f) && !path) {
+    if ([nameass, namesrc, namevtt].includes(f) && !path) {
       path = [folder, f.trim()].filter((p) => !!p).join("/");
     }
   });
